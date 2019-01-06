@@ -48,9 +48,13 @@ pipeline {
             sh '''
               [ -d bin ] || mkdir bin
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
+              
               export GOSS_PATH=$(pwd)/bin/goss
+              export GOSS_OPTS="--format junit"
 
-              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop
+              mkdir -p build/reports
+
+              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop | \\grep '<' > build/reports/goss-junit.xml
             '''
           }
         }
@@ -62,9 +66,13 @@ pipeline {
             sh '''
               [ -d bin ] || mkdir bin
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
+              
               export GOSS_PATH=$(pwd)/bin/goss
+              export GOSS_OPTS="--format junit"
 
-              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:latest
+              mkdir -p build/reports
+
+              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop | \\grep '<' > build/reports/goss-junit.xml
             '''
           }
         }
@@ -128,5 +136,11 @@ pipeline {
         }
       }
     }
+  }
+
+  post {
+      always {
+          junit 'build/reports/**/*.xml'
+      }
   }
 }
