@@ -46,7 +46,7 @@ pipeline {
           when { not { branch 'master' } }
           steps {
             sh '''
-              mkdir bin
+              [ -d bin ] || mkdir bin
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
               export GOSS_PATH=$(pwd)/bin/goss
 
@@ -60,7 +60,7 @@ pipeline {
           when { branch 'master' }
           steps {
             sh '''
-              mkdir bin
+              [ -d bin ] || mkdir bin
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
               export GOSS_PATH=$(pwd)/bin/goss
 
