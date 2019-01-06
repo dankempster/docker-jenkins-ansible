@@ -50,7 +50,7 @@ pipeline {
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
               export GOSS_PATH=$(pwd)/bin/goss
 
-              ./bin/dgoss run dankempster/jenkins-ansible:develop
+              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop
             '''
           }
         }
@@ -64,7 +64,7 @@ pipeline {
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
               export GOSS_PATH=$(pwd)/bin/goss
 
-              ./bin/dgoss run dankempster/jenkins-ansible:latest
+              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:latest
             '''
           }
         }
