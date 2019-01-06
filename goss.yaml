@@ -19,6 +19,10 @@ port:
   tcp:50000:
     listening: false
     ip: []
+service:
+  jenkins:
+    enabled: true
+    running: true
 user:
   jenkins:
     exists: true

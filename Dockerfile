@@ -27,4 +27,7 @@ RUN apt-key adv --fetch-keys https://pkg.jenkins.io/debian/jenkins.io.apt-key \
     && apt-get install -y --allow-unauthenticated --no-install-recommends jenkins \
     && rm -rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
-    && apt-get clean
+    && apt-get clean \
+    && mkdir -p /var/run/jenkins \
+    && update-rc.d jenkins defaults \
+    && sudo systemctl enable jenkins.service
