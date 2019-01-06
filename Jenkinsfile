@@ -46,9 +46,9 @@ pipeline {
           when { not { branch 'master' } }
           steps {
             sh '''
-              curl -fsSL https://goss.rocks/install | sh
+              curl -fsSL https://goss.rocks/install | GOSS_DST=./
 
-              dgoss run dankempster/jenkins-ansible:develop
+              ./dgoss run dankempster/jenkins-ansible:develop
             '''
           }
         }
@@ -58,9 +58,9 @@ pipeline {
           when { branch 'master' }
           steps {
             sh '''
-              curl -fsSL https://goss.rocks/install | sh
+              curl -fsSL https://goss.rocks/install | GOSS_DST=./
 
-              dgoss run dankempster/jenkins-ansible:latest
+              ./dgoss run dankempster/jenkins-ansible:latest
             '''
           }
         }
