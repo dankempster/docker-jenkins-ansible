@@ -48,6 +48,7 @@ pipeline {
             sh '''
               mkdir bin
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
+              export GOSS_PATH=$(pwd)/bin/goss
 
               ./bin/dgoss run dankempster/jenkins-ansible:develop
             '''
@@ -61,6 +62,7 @@ pipeline {
             sh '''
               mkdir bin
               curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
+              export GOSS_PATH=$(pwd)/bin/goss
 
               ./bin/dgoss run dankempster/jenkins-ansible:latest
             '''
