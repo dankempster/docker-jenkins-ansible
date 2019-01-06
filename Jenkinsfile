@@ -39,6 +39,34 @@ pipeline {
       }
     }
 
+    stage('Run') {
+      parallel {
+        stage('Build dev') {
+          // build any non-master branch under the ':develop' tag
+          when { not { branch 'master' } }
+          steps {
+            sh '''
+              containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop)
+
+              docker exec --tty $containerId env TERM=xterm ansible --version
+            '''
+          }
+        }
+
+        stage('Build master') {
+          // Only build master under the ':latest' tags
+          when { branch 'master' }
+          steps {
+            sh '''
+              containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:latest)
+
+              docker exec --tty $containerId env TERM=xterm ansible --version
+            '''
+          }
+        }
+      }
+    }
+
     stage('Publish') {
       parallel {
         stage('Publish: Develop branch') {
