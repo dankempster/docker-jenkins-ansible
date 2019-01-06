@@ -5,6 +5,8 @@ ENV DEBIAN_FRONTEND noninteractive
 
 ENV pip_packages "ansible cryptography"
 
+USER root
+
 # Install dependencies.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
