@@ -30,4 +30,4 @@ I use Docker to test my Ansible roles and playbooks on multiple OSes using CI to
 
 ## Author
 
-Inspired by [work](https://github.com/geerlingguy/docker-debian9-ansible) by [Jeff Geerling](https://www.jeffgeerling.com/), author of [Ansible for DevOps](https://www.ansiblefordevops.com/). Modified by Dan Kempster for Raspbain.
+Inspired by [work](https://github.com/geerlingguy/docker-debian9-ansible) from [Jeff Geerling](https://www.jeffgeerling.com/), author of [Ansible for DevOps](https://www.ansiblefordevops.com/). Modified by Dan Kempster.
