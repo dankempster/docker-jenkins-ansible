@@ -1,29 +1,33 @@
-FROM jenkins:latest
+FROM geerlingguy/docker-debian9-ansible:latest
 LABEL maintainer="Dan Kempster"
 
 ENV DEBIAN_FRONTEND noninteractive
 
-ENV pip_packages "ansible cryptography"
+ENV pip_packages "ansible"
 
 # Install dependencies.
-RUN apt-get update \
+RUN mkdir -p /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm \
+	&& ln -s /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/client /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/server \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
-       sudo systemd \
-       build-essential libffi-dev libssl-dev \
-       python-pip python-dev python-setuptools python-wheel \
+       software-properties-common \
+       curl \
+       dirmngr \
+       gnupg \
+       apt-transport-https \
+       openjdk-8-jdk \
     && rm -rf /var/lib/apt/lists/* \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
 
-# Install Ansible via pip.
-RUN pip install $pip_packages
-
-COPY initctl_faker .
-RUN chmod +x initctl_faker && rm -fr /sbin/initctl && ln -s /initctl_faker /sbin/initctl
-
-# Install Ansible inventory file.
-RUN mkdir -p /etc/ansible
-RUN echo "[local]\nlocalhost ansible_connection=local" > /etc/ansible/hosts
-
-VOLUME ["/sys/fs/cgroup"]
-CMD ["/lib/systemd/systemd"]
+# Install Jenkins
+RUN apt-key adv --fetch-keys https://pkg.jenkins.io/debian/jenkins.io.apt-key \
+    && add-apt-repository -y 'deb https://pkg.jenkins.io/debian binary/' \
+    && apt-get update \
+    && apt-get install -y --allow-unauthenticated --no-install-recommends jenkins \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
+    && apt-get clean \
+    && mkdir -p /var/run/jenkins \
+    && update-rc.d jenkins defaults \
+    && sudo systemctl enable jenkins.service
