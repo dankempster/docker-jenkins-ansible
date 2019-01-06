@@ -39,6 +39,34 @@ pipeline {
       }
     }
 
+    stage('Test') {
+      parallel {
+        stage('Test dev') {
+          // build any non-master branch under the ':develop' tag
+          when { not { branch 'master' } }
+          steps {
+            sh '''
+              curl -fsSL https://goss.rocks/install | sh
+
+              dgoss run dankempster/jenkins-ansible:develop
+            '''
+          }
+        }
+
+        stage('Test master') {
+          // Only build master under the ':latest' tags
+          when { branch 'master' }
+          steps {
+            sh '''
+              curl -fsSL https://goss.rocks/install | sh
+
+              dgoss run dankempster/jenkins-ansible:latest
+            '''
+          }
+        }
+      }
+    }
+
     stage('Run') {
       parallel {
         stage('Run dev') {
