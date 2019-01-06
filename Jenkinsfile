@@ -1,7 +1,7 @@
 pipeline {
 
   agent {
-    label 'raspberrypi'
+    label 'amd64'
   }
 
   stages {
