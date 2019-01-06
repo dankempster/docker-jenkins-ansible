@@ -8,6 +8,26 @@ pipeline {
     stage('Update') {
       steps {
         checkout scm
+
+        sh 'docker pull $(head -n 1 Dockerfile | cut -d " " -f 2)'
+      }
+    }
+
+    stage('Prepare') {
+      steps {
+        sh '''
+          [ -d bin ] || mkdir bin
+
+          [ -d build/reports ] || mkdir -p build/reports
+        '''
+      }
+    }
+
+    stage('Install Goss') {
+      steps {
+        sh '''
+          curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
+        '''
       }
     }
 
@@ -18,8 +38,6 @@ pipeline {
           when { not { branch 'master' } }
           steps {
             sh '''
-              docker pull raspbian/jessie:latest
-
               docker build -f "Dockerfile" -t dankempster/jenkins-ansible:develop .
             '''
           }
@@ -30,8 +48,6 @@ pipeline {
           when { branch 'master' }
           steps {
             sh '''
-              docker pull raspbian/jessie:latest
-
               docker build -f "Dockerfile" -t dankempster/jenkins-ansible:latest .
             '''
           }
@@ -46,13 +62,8 @@ pipeline {
           when { not { branch 'master' } }
           steps {
             sh '''
-              [ -d bin ] || mkdir bin
-              curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
-              
               export GOSS_PATH=$(pwd)/bin/goss
               export GOSS_OPTS="--format junit"
-
-              mkdir -p build/reports
 
               ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop | \\grep '<' > build/reports/goss-junit.xml
             '''
@@ -64,13 +75,8 @@ pipeline {
           when { branch 'master' }
           steps {
             sh '''
-              [ -d bin ] || mkdir bin
-              curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
-              
               export GOSS_PATH=$(pwd)/bin/goss
               export GOSS_OPTS="--format junit"
-
-              mkdir -p build/reports
 
               ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop | \\grep '<' > build/reports/goss-junit.xml
             '''
