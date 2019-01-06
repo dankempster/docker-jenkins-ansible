@@ -77,6 +77,9 @@ pipeline {
               containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop)
 
               docker exec --tty $containerId env TERM=xterm ansible --version
+
+              docker stop $containerId
+              docker rm -v $containerId
             '''
           }
         }
@@ -89,6 +92,9 @@ pipeline {
               containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:latest)
 
               docker exec --tty $containerId env TERM=xterm ansible --version
+
+              docker stop $containerId
+              docker rm -v $containerId
             '''
           }
         }
