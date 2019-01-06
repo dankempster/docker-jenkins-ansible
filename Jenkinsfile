@@ -41,24 +41,28 @@ pipeline {
 
     stage('Run') {
       parallel {
-        stage('Build dev') {
+        stage('Run dev') {
           // build any non-master branch under the ':develop' tag
           when { not { branch 'master' } }
           steps {
             sh '''
               containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop)
 
+              docker log $containerId
+
               docker exec --tty $containerId env TERM=xterm ansible --version
             '''
           }
         }
 
-        stage('Build master') {
+        stage('Run master') {
           // Only build master under the ':latest' tags
           when { branch 'master' }
           steps {
             sh '''
               containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:latest)
+
+              docker log $containerId
 
               docker exec --tty $containerId env TERM=xterm ansible --version
             '''
