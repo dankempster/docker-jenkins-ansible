@@ -23,6 +23,52 @@ pipeline {
       }
     }
 
+    stage('Static Code Analysis') {
+      steps {
+        sh '[ -d build/reports ] || mkdir -p build/reports'
+        
+        sh 'ansible-lint -p tasks/ > build/reports/ansiblelint.txt'
+        
+        sh 'yamllint -c yaml-lint.yml -f parsable . > build/reports/yamllint.txt'
+
+        step([
+          $class: 'ViolationsToGitHubRecorder',
+          config: [
+            gitHubUrl: 'https://api.github.com/',
+            repositoryOwner: 'dankempster',
+            repositoryName: 'docker-jenkins-ansible',
+            pullRequestId: '2',
+
+            // Only specify one of these!
+            credentialsId: 'com.github.dankempster.token',
+
+            createCommentWithAllSingleFileComments: true,
+            createSingleFileComments: true,
+            commentOnlyChangedContent: true,
+            minSeverity: 'INFO',
+            keepOldComments: false,
+
+            commentTemplate: """
+            **Reporter**: {{violation.reporter}}{{#violation.rule}}
+
+            **Rule**: {{violation.rule}}{{/violation.rule}}
+            **Severity**: {{violation.severity}}
+            **File**: {{violation.file}} L{{violation.startLine}}{{#violation.source}}
+
+            **Source**: {{violation.source}}{{/violation.source}}
+
+            {{violation.message}}
+            """,
+
+            violationConfigs: [
+              [ pattern: 'build/reports/ansiblelint\\.txt$', parser: 'FLAKE8', reporter: 'AnsibleLint' ],
+              [ pattern: 'build/reports/yamllint\\.txt$', parser: 'YAMLLINT', reporter: 'YAMLLint' ],
+            ]
+          ]
+        ])
+      }
+    }
+
     stage('Build') {
       steps {
         script { 
