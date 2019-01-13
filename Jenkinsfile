@@ -44,7 +44,7 @@ pipeline {
 
         sh """
           export GOSS_PATH=\$(pwd)/bin/goss
-          export GOSS_OPTS="--format junit"
+          export GOSS_OPTS="--retry-timeout 30s --sleep 1s --format junit"
 
           ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro ${IMAGE_NAME}:${IMAGE_TAG} | \\grep '<' > build/reports/goss-junit.xml
         """
