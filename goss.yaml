@@ -16,9 +16,6 @@ port:
   tcp:8080:
     listening: true
     ip: []
-process:
-  jenkins:
-    running: true
 user:
   jenkins:
     exists: true
