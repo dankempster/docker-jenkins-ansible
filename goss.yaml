@@ -1,3 +1,6 @@
+command:
+  curl -u "admin:admin" 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)':
+    exit-status: 0
 file:
   /var/lib/jenkins:
     exists: true
@@ -14,14 +17,8 @@ package:
     - "2.156"
 port:
   tcp:8080:
-    listening: false
+    listening: true
     ip: []
-  tcp:50000:
-    listening: false
-    ip: []
-process:
-  jenkins:
-    running: true
 user:
   jenkins:
     exists: true
