@@ -40,6 +40,7 @@ pipeline {
 
     stage('Tests') {
       steps {
+        sh 'rm -fr build/*'
         sh '[ -d build/reports ] || mkdir -p build/reports'
         sh '[ -d build/raw-reports ] || mkdir -p build/raw-reports'
 
