@@ -31,3 +31,5 @@ RUN apt-key adv --fetch-keys https://pkg.jenkins.io/debian/jenkins.io.apt-key \
     && mkdir -p /var/run/jenkins \
     && update-rc.d jenkins defaults \
     && sudo systemctl enable jenkins.service
+
+COPY basic-security.groovy /var/lib/jenkins/init.groovy.d/basic-security.groovy
