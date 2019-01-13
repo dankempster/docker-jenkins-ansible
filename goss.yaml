@@ -14,10 +14,7 @@ package:
     - "2.156"
 port:
   tcp:8080:
-    listening: false
-    ip: []
-  tcp:50000:
-    listening: false
+    listening: true
     ip: []
 process:
   jenkins:
