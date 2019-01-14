@@ -29,13 +29,13 @@ RUN apt-key adv --fetch-keys https://pkg.jenkins.io/debian/jenkins.io.apt-key \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean \
     && mkdir -p /var/run/jenkins \
-    && update-rc.d jenkins defaults \
-    && sudo systemctl enable jenkins.service
+    && update-rc.d jenkins defaults
 
 COPY basic-security.groovy /var/lib/jenkins/init.groovy.d/basic-security.groovy
-COPY jenkins.systemd /etc/systemd/system/jenkins.service
+COPY jenkins.systemd /etc/systemd/system/multi-user.target.wants/jenkins.service
 COPY locale /etc/default/locale
 
-RUN chmod 0775 /var/lib/jenkins/init.groovy.d/basic-security.groovy \
+RUN sudo systemctl enable jenkins.service \
+    && chmod 0775 /var/lib/jenkins/init.groovy.d/basic-security.groovy \
     && chown jenkins:jenkins /var/lib/jenkins/init.groovy.d/basic-security.groovy \
     && echo "\nKillExcludeUsers=root jenkins\n" >> /etc/systemd/logind.conf
