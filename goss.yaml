@@ -13,8 +13,6 @@ file:
 package:
   jenkins:
     installed: true
-    versions:
-    - "2.156"
 port:
   tcp:8080:
     listening: true
