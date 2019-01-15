@@ -7,6 +7,13 @@ file:
     group: jenkins
     filetype: directory
     contains: []
+  /etc/default/locale:
+    exists: true
+    owner: root
+    group: root
+    filetype: file
+    contains:
+      - "LANG=en_GB.UTF-8"
   /etc/default/jenkins:
     exists: true
     owner: root
