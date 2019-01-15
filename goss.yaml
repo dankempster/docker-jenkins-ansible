@@ -7,6 +7,13 @@ file:
     group: jenkins
     filetype: directory
     contains: []
+  /etc/default/jenkins:
+    exists: true
+    owner: root
+    group: root
+    filetype: file
+    contains:
+      - "JAVA_ARGS=\"-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false\""
 package:
   jenkins:
     installed: true
