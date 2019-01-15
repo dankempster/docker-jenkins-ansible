@@ -21,6 +21,12 @@ file:
     filetype: file
     contains:
       - "JAVA_ARGS=\"-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false\""
+  /etc/systemd/system/multi-user.target.wants/jenkins.service:
+    exists: true
+    owner: root
+    group: root
+    filetype: file
+    contains: []
 package:
   jenkins:
     installed: true
