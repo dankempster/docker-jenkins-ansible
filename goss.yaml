@@ -1,3 +1,6 @@
+command:
+  ansible --version:
+    exit-status: 0
 file:
   /var/lib/jenkins:
     exists: true

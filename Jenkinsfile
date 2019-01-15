@@ -85,24 +85,6 @@ pipeline {
       }
     }
 
-    stage('Ansible Test') {
-      steps {
-        script {
-          CONTAINER_ID = sh(
-            script: "docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro ${IMAGE_NAME}:${IMAGE_TAG}",
-            returnStdout: true
-          ).trim()
-        }
-        
-        sh "docker exec --tty ${CONTAINER_ID} env TERM=xterm ansible --version"
-
-        sh """
-          docker stop ${CONTAINER_ID}
-          docker rm ${CONTAINER_ID}
-        """
-      }
-    }
-
     stage('Publish') {
       when {
         anyOf {
