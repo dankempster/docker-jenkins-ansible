@@ -2,23 +2,19 @@ file:
   /var/lib/jenkins:
     exists: true
     mode: "0755"
-    size: 4096
     owner: jenkins
     group: jenkins
     filetype: directory
-    contains: []
   /etc/default/locale:
     exists: true
     owner: root
     group: root
-    filetype: file
     contains:
       - "LANG=en_GB.UTF-8"
   /etc/default/jenkins:
     exists: true
     owner: root
     group: root
-    filetype: file
     contains:
       - "JAVA_ARGS=\"-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false\""
   /etc/systemd/system/multi-user.target.wants/jenkins.service:
@@ -26,7 +22,6 @@ file:
     owner: root
     group: root
     filetype: file
-    contains: []
 package:
   jenkins:
     installed: true
@@ -47,5 +42,5 @@ http:
     status: 200
     # optional attributes
     allow-insecure: true
-    no-follow-redirects: false # Setting this to true will NOT follow redirects
+    no-follow-redirects: false
     timeout: 1000
