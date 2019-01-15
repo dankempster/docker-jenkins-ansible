@@ -20,8 +20,6 @@ port:
 user:
   jenkins:
     exists: true
-    uid: 105
-    gid: 106
     groups:
     - jenkins
     home: /var/lib/jenkins
