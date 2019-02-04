@@ -2,16 +2,40 @@
 
 Jenkins docker image for Ansible playbook and role testing.
 
+## How to Develop
+
+Running this image on my Mac causes docker to crash ramdonly, sometimes it
+crashs a couple of minutes after starting, sometimes hours after.
+So, I use a vagrant machine to develop on.
+
+To do the same, you'll need:
+
+ - Ansible
+ - Vagrant
+ - VirtualBox / VMware
+
+Once that software is installed, start the dev box
+
+ 1. `cd` into this directory.
+ 2. `cd` into `dev/`
+ 3. Install ansible-role dependencies -- `ansible-galaxy install -r requirements.yml`
+ 4. Start the vagrant box --`vagrant up`
+ 5. SSH into the vagrant box -- `vagrant ssh`
+ 6. `cd` into `/docker-jenkins-ansible`, the mounted project directory
+ 7. Hack away :-)
+
+
 ## How to Build
 
-This image is built on a personal Jenkins server automatically, But if you 
-need to build the image on your own locally, do the following:
+This image is built on a personal Jenkins server automatically and push to
+Docker Hub. But should you wish to build the image locally, do the following:
 
   1. [Install Docker](https://docs.docker.com/engine/installation/).
   2. `cd` into this directory.
   3. Run `docker build -t jenkins-ansible .`
 
 > Note: Switch between `master` and `testing` depending on whether you want the extra testing tools present in the resulting image.
+
 
 ## How to Use
 
@@ -21,6 +45,7 @@ need to build the image on your own locally, do the following:
   4. Use Ansible inside the container:
     a. `docker exec --tty [container_id] env TERM=xterm ansible --version`
     b. `docker exec --tty [container_id] env TERM=xterm ansible-playbook /path/to/ansible/playbook.yml --syntax-check`
+
 
 ## Notes
 

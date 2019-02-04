@@ -1,3 +1,8 @@
+#!/usr/bin/env groovy
+
+def IMAGE_NAME = "dankempster/jenkins-ansible"
+def IMAGE_TAG = "build"
+
 pipeline {
 
   agent {
@@ -5,148 +10,133 @@ pipeline {
   }
 
   stages {
-    stage('Update') {
-      steps {
-        checkout scm
-
-        sh 'docker pull $(head -n 1 Dockerfile | cut -d " " -f 2)'
-      }
-    }
-
-    stage('Prepare') {
-      steps {
-        sh '''
-          [ -d bin ] || mkdir bin
-
-          [ -d build/reports ] || mkdir -p build/reports
-        '''
-      }
-    }
-
-    stage('Install Goss') {
-      steps {
-        sh '''
-          curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh
-        '''
-      }
-    }
 
     stage('Build') {
-      parallel {
-        stage('Build dev') {
-          // build any non-master branch under the ':develop' tag
-          when { not { branch 'master' } }
-          steps {
-            sh '''
-              docker build -f "Dockerfile" -t dankempster/jenkins-ansible:develop .
-            '''
-          }
-        }
+      steps {
 
-        stage('Build master') {
-          // Only build master under the ':latest' tags
-          when { branch 'master' }
-          steps {
-            sh '''
-              docker build -f "Dockerfile" -t dankempster/jenkins-ansible:latest .
-            '''
+        // Ensure we have the latest base docker image
+        sh "docker pull \$(head -n 1 Dockerfile | cut -d \" \" -f 2)"
+
+        script { 
+          if (env.BRANCH_NAME == 'develop') {
+            IMAGE_TAG = 'develop'
+          }
+          else if (env.BRANCH_NAME == 'master') {
+            IMAGE_TAG = 'latest'
+          }
+          else {
+            IMAGE_TAG = 'build'
           }
         }
+        
+        sh "docker build -f Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} ."
       }
     }
 
-    stage('Test') {
+    stage('Tests') {
       parallel {
-        stage('Test dev') {
-          // build any non-master branch under the ':develop' tag
-          when { not { branch 'master' } }
+        stage('Goss') {
           steps {
-            sh '''
-              export GOSS_PATH=$(pwd)/bin/goss
-              export GOSS_OPTS="--format junit"
 
-              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop | \\grep '<' > build/reports/goss-junit.xml
-            '''
+            // Prepare build directory
+            sh 'rm -fr build/{reports,raw-reports}'
+            sh '[ -d build/reports ] || mkdir -p build/reports'
+            sh '[ -d build/raw-reports ] || mkdir -p build/raw-reports'
+
+            // Install Goss & dgoss
+            sh '[ -d bin ] || mkdir bin'
+            sh 'curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh'
+            sh "chmod +rx ./bin/{goss,dgoss}"
+
+            // Run the tests
+            sh """
+              export GOSS_PATH=\$(pwd)/bin/goss
+              export GOSS_OPTS="--retry-timeout 120s --sleep 5s --format junit"
+
+              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro -p 8080 ${IMAGE_NAME}:${IMAGE_TAG} | \\grep '<' > build/raw-reports/goss-output.txt
+            """
+          }
+          post {
+            always {
+              // The following is required to extract the last junit report
+              // from Goss output.
+              // This is required because
+              //  - goss outputs the junit format to STDOUT, with other output.
+              //  - goss prints out junit for each "retry", so the final output
+              //      is multiple junit reports. One for each "try" during the
+              //      tests.
+              //  - I have to use the goss' retry feature so it "waits" for
+              //      Jenkins to load.
+              //
+              sh """
+                cd build/raw-reports
+
+                # split Goss output into multiple files numbered sequentially.
+                awk '
+                FNR==1 {
+                   path = namex = FILENAME;
+                   sub(/^.*\\//,   "", namex);
+                   sub(namex "\$", "", path );
+                   name = ext  = namex;
+                   sub(/\\.[^.]*\$/, "", name);
+                   sub("^" name,   "", ext );
+                }
+                /<\\?xml / {
+                   if (out) close(out);
+                   out = path name (++file) ext ;
+                   print "Spliting to " out " ...";
+                }
+                /<\\?xml /,/<\\/testsuite>/ {
+                   print \$0 > out
+                }
+                ' goss-output.txt
+
+                # use the highest numbered file as Goss' final junit report
+                mv goss-output\$(ls -l | grep -P goss-output[0-9]+\\.txt | wc -l).txt ../reports/goss-junit.xml
+              """
+
+              junit 'build/reports/**/*.xml'
+            }
           }
         }
 
-        stage('Test master') {
-          // Only build master under the ':latest' tags
-          when { branch 'master' }
+        stage('Ansible\'s Version') {
           steps {
-            sh '''
-              export GOSS_PATH=$(pwd)/bin/goss
-              export GOSS_OPTS="--format junit"
+            script {
+              CONTAINER_ID = sh(
+                script: "docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro ${IMAGE_NAME}:${IMAGE_TAG}",
+                returnStdout: true
+              ).trim()
+            }
+            
+            sh "docker exec --tty ${CONTAINER_ID} env TERM=xterm ansible --version"
 
-              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop | \\grep '<' > build/reports/goss-junit.xml
-            '''
-          }
-        }
-      }
-    }
-
-    stage('Run') {
-      parallel {
-        stage('Run dev') {
-          // build any non-master branch under the ':develop' tag
-          when { not { branch 'master' } }
-          steps {
-            sh '''
-              containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:develop)
-
-              docker exec --tty $containerId env TERM=xterm ansible --version
-
-              docker stop $containerId
-              docker rm -v $containerId
-            '''
-          }
-        }
-
-        stage('Run master') {
-          // Only build master under the ':latest' tags
-          when { branch 'master' }
-          steps {
-            sh '''
-              containerId=$(docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro dankempster/jenkins-ansible:latest)
-
-              docker exec --tty $containerId env TERM=xterm ansible --version
-
-              docker stop $containerId
-              docker rm -v $containerId
-            '''
+            sh """
+              docker stop ${CONTAINER_ID}
+              docker rm ${CONTAINER_ID}
+            """
           }
         }
       }
     }
 
     stage('Publish') {
-      parallel {
-        stage('Publish: Develop branch') {
-          // Only push the develop branch to the public as :develop branch
-          when { branch 'develop' }
-          steps {
-            withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
-              sh 'docker push dankempster/jenkins-ansible:develop'
+      when {
+        anyOf {
+          branch 'develop'
+          allOf {
+            expression {
+              currentBuild.result != 'UNSTABLE'
             }
+            branch 'master'
           }
         }
-
-        stage('Publish: Master branch') {
-          // Publish master branch to the public
-          when { branch 'master' }
-          steps {
-            withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
-              sh 'docker push dankempster/jenkins-ansible:latest'
-            }
-          }
+      }
+      steps {
+        withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
+          sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
         }
       }
     }
-  }
-
-  post {
-      always {
-          junit 'build/reports/**/*.xml'
-      }
   }
 }
