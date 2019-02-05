@@ -1,7 +1,7 @@
 galaxy_info:
-  author: Your name
-  description: Describe your awesome application here.
-  company: Your company
+  author: Dan Kempster
+  description: Builds a docker image for testing other ansible roles that work with Jenkins
+  company: 13Lines
 
   # If the issue tracker for your role is not on GitHub, uncomment the
   # next line and provide a value
@@ -14,7 +14,7 @@ galaxy_info:
   # - GPLv3
   # - Apache
   # - CC-BY
-  license: license (GPLv2, CC-BY, etc)
+  license: MIT
 
   min_ansible_container_version: 0.9.3rc3
 
