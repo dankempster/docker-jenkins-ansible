@@ -3,6 +3,14 @@ bin
 
 .vagrant
 
+# python virtual environment
+p-env
+venv
+.p-env
+.venv
+
+# ansible-container
+ansible-deployment/
 
 # Created by https://www.gitignore.io/api/git,macos,ansible,sublimetext
 # Edit at https://www.gitignore.io/?templates=git,macos,ansible,sublimetext
