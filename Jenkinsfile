@@ -144,7 +144,8 @@ pipeline {
                       source virtenv/bin/activate
                       pip install --upgrade ansible molecule docker jmespath xmlunittest
 
-                      molecule -e ./molecule/debian9_env.yml test
+                      molecule -e ./molecule/debian9_env.yml converge
+                      molecule -e ./molecule/debian9_env.yml verify
                     '''
                   } catch (Exception e) {
                     currentBuild.result = 'UNSTABLE'
