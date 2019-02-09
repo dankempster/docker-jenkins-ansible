@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 def IMAGE_NAME = "dankempster/jenkins-ansible"
+def SED_IMAGE_NAME = "dankempster\\/jenkins-ansible"
 def IMAGE_TAG = "build"
 
 pipeline {
@@ -134,7 +135,7 @@ pipeline {
               )
 
               ansiColor('xterm') {
-                sh "sed 's/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: \"${IMAGE_NAME}:${IMAGE_NAME}\"/g' molecule/debian9_env.yml"
+                sh "sed 's/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: \"${SED_IMAGE_NAME}:${IMAGE_TAG}\"/g' molecule/debian9_env.yml"
 
                 script {
                   try {
