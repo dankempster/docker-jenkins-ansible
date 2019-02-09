@@ -4,6 +4,10 @@
 
 PROGNAME=$(basename $0)
 
+usage() {
+    echo "USAGE: ${PROGNAME} [-t TAG]"
+}
+
 errorExit() {
 #	----------------------------------------------------------------
 #	Function for exit due to fatal program error
@@ -17,12 +21,15 @@ errorExit() {
 #
 #	   error_exit "$LINENO: An error has occurred."
 #
-	echo "${PROGNAME}: ${1:-"Unknown Error"}" 1>&2
-	exit 1
+    echo "${PROGNAME}: ${1:-"Unknown Error"}" 1>&2
+    exit 2
 }
 
-usage() {
-	echo "USAGE: ${PROGNAME} [-t TAG]"
+usageErrorExit() {
+    echo "${PROGNAME}: ${1}" 1>&2
+    echo ""
+    usage
+    exit 1
 }
 
 dockerfile=Dockerfile
@@ -43,9 +50,8 @@ while [ "$1" != "" ]; do
 			shift
             tag=$1
             ;;
-        * )                   
-            usage
-            exit 1
+        * )
+            usageErrorExit "Unknown argument '${1}'"
     esac
     shift
 done
@@ -54,4 +60,10 @@ baseImage="geerlingguy/docker-debian9-ansible:latest"
 
 docker pull $baseImage
 echo ""
-bin/docker-playbook.sh -p playbook.yml -d $dockerfile -r $repoName:$tag
+bin/docker-playbook.sh \
+    -d $dockerfile \
+    -c /lib/systemd/systemd \
+    -p 8080 \
+    -p 50000 \
+    -v /sys/fs/cgroup:/sys/fs/cgroup:ro \
+    -t "${repoName}:${tag}"
