@@ -13,17 +13,19 @@ settings:
 
   # Set the name of the project. Defaults to basename of the project directory.
   # For built services, concatenated with service name to form the built image name.
-  project_name: docker-jenkins-ansible
+  project_name: jenkins
 
   # The deployment_output_path is mounted to the Conductor container, and the 
   # `run` and `deployment` commands then write generated Ansible playbooks to it.
   # deployment_output_path: ./ansible-deployment
 
 services:
-  jenkins:
+  ansible:
+    command: ["/lib/systemd/systemd"]
+    entrypoint: [" "]
+
     from: "geerlingguy/docker-debian9-ansible:latest"
-    roles: 
-      - prepare
+    roles:
       - geerlingguy.java
       - geerlingguy.jenkins
     ports:
