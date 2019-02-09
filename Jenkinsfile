@@ -190,7 +190,7 @@ pipeline {
 
             dir("build/uats/jenkins-farm") {
               git(
-                branch: 'feature/use-as-uat',
+                branch: 'develop',
                 changelog: false,
                 credentialsId: 'com.github.dankempster.user',
                 poll: false,
