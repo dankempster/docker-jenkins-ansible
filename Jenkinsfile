@@ -135,7 +135,7 @@ pipeline {
               )
 
               ansiColor('xterm') {
-                sh "sed 's/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: \"${SED_IMAGE_NAME}:${IMAGE_TAG}\"/g' molecule/debian9_env.yml"
+                sh "sed -i 's/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: ${SED_IMAGE_NAME}:${IMAGE_TAG}/g' ./molecule/debian9_env.yml"
 
                 script {
                   try {
