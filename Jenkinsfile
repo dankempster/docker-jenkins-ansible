@@ -118,6 +118,38 @@ pipeline {
       }
     }
 
+    stage('UATs') {
+      parallel {
+        stage('jenkins-config') {
+          steps {
+            sh "[ ! -d build/uats/jenkins-config ] && mkdir -p build/uats/jenkins-config"
+
+            dir("build/uats/jenkins-config") {
+              git(
+                branch: 'feature/use-as-uat',
+                changelog: false,
+                credentialsId: 'com.github.dankempster.user',
+                poll: false,
+                url: 'https://github.com/dankempster/ansible-role-jenkins-config.git'
+              )
+
+              ansiColor('xterm') {
+                sh "sed \"s/^FROM .*/FROM ${IMAGE_NAME}:${IMAGE_NAME}/g\" Dockerfile"
+                
+                sh '''
+                  virtualenv virtenv
+                  source virtenv/bin/activate
+                  pip install --upgrade ansible molecule docker jmespath xmlunittest
+
+                  molecule -e ./molecule/debian9_env.yml test
+                '''
+              }
+            }
+          }
+        }
+      }
+    }
+
     stage('Publish') {
       when {
         anyOf {
