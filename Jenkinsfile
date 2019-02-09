@@ -154,6 +154,25 @@ pipeline {
               }
             }
           }
+          post {
+            always {
+              dir("build/uats/jenkins-config") {
+                script {
+                  try {
+                    ansiColor('xterm') {
+                      sh '''
+                        virtualenv virtenv
+                        source virtenv/bin/activate
+
+                        molecule -e ./molecule/debian9_env.yml destroy
+                      '''
+                    }
+                  } catch (Exception e) {
+                  }
+                }
+              }
+            }
+          }
         }
       }
     }
