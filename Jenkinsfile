@@ -25,7 +25,9 @@ pipeline {
           }
         }
         
-        sh "./build.sh -r ${IMAGE_NAME} -t ${IMAGE_TAG}"
+        ansiColor('xterm') {
+          sh "./build.sh -r ${IMAGE_NAME} -t ${IMAGE_TAG}"
+        }
       }
     }
 
