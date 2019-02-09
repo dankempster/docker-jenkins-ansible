@@ -119,9 +119,9 @@ pipeline {
       }
     }
 
-    stage('UATs') {
-      parallel {
-        stage('jenkins-config') {
+    // stage('UATs') {
+      // parallel {
+        stage('UAT: jenkins-config') {
           steps {
             sh '[ -d build/uats/jenkins-config ] || mkdir -p build/uats/jenkins-config'
 
@@ -174,8 +174,8 @@ pipeline {
             }
           }
         }
-      }
-    }
+      // }
+    // }
 
     stage('Publish') {
       when {
