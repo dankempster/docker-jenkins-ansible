@@ -122,7 +122,7 @@ pipeline {
       parallel {
         stage('jenkins-config') {
           steps {
-            sh "[ ! -d build/uats/jenkins-config ] && mkdir -p build/uats/jenkins-config"
+            sh '[ -d build/uats/jenkins-config ] || mkdir -p build/uats/jenkins-config'
 
             dir("build/uats/jenkins-config") {
               git(
