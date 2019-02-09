@@ -25,11 +25,16 @@ usage() {
 	echo "USAGE: ${PROGNAME} [-t TAG]"
 }
 
+dockerfile=Dockerfile
 repoName="dankempster/jenkins"
 tag="build"
 
 while [ "$1" != "" ]; do
     case $1 in
+        -d | --docker )
+            shift
+            dockerfile=$1
+            ;;
         -r | --repository )
             shift
             repoName=$1
@@ -49,4 +54,4 @@ baseImage="geerlingguy/docker-debian9-ansible:latest"
 
 docker pull $baseImage
 echo ""
-bin/docker-playbook.sh -p playbook.yml -b $baseImage -r $repoName:$tag
+bin/docker-playbook.sh -p playbook.yml -d $dockerfile -r $repoName:$tag

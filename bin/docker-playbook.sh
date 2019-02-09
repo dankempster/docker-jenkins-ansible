@@ -22,12 +22,18 @@ errorExit() {
 }
 
 baseImage=""
+builtBaseImage=0
+dockerfile=Dockerfile
 playbook="playbook.yml"
 repository=""
 
 
 cleanUp() {
 	docker rm -v $(docker stop ${containerId})
+    
+    if [ $builtBaseImage -eq 1 ]; then
+        docker rmi ${baseImage}
+    fi
 }
 
 cleanUpTrap() {
@@ -40,12 +46,19 @@ cleanUpTrap() {
 	exit 1
 }
 
+buildBaseImage() {
+    baseImage="dockerplaybook:base_image"
+
+    docker build -f $1 . -t ${baseImage}
+    builtBaseImage=1
+}
+
 startBase() {
 	docker run -dt -v $(pwd):/project $1 bash -i
 }
 
 usage() {
-	echo "USAGE: ${PROGNAME} [-p PLAYBOOK] -b BASE_IMAGE -r REPOSITORY[:TAG]"
+	echo "USAGE: ${PROGNAME} [-p PLAYBOOK] [-b BASE_IMAGE] -r REPOSITORY[:TAG]"
 }
 
 if [ $# -eq 0 ]; then
@@ -57,8 +70,12 @@ fi
 while [ "$1" != "" ]; do
     case $1 in
         -b | --base )
-			shift
+            shift
             baseImage=$1
+            ;;
+        -d | --dockerfile )
+            shift
+            dockerfile=$1
             ;;
         -p | --playbook )
 			shift
@@ -75,11 +92,15 @@ while [ "$1" != "" ]; do
     shift
 done
 
-containerId=$(startBase $baseImage)
+if [ "${baseImage}" == "" ]; then
+    buildBaseImage $dockerfile
+fi
 
 # Clean up the continer if we recieved one of these signals before
 #   terminating the script
 trap "cleanUpTrap $continerId" SIGHUP SIGINT SIGTERM
+
+containerId=$(startBase $baseImage)
 
 echo "Building '${repository}' in container ${containerId}"
 
