@@ -26,7 +26,7 @@ usage() {
 }
 
 dockerfile=Dockerfile
-repoName="dankempster/jenkins"
+repoName="dankempster/jenkins-ansible"
 tag="build"
 
 while [ "$1" != "" ]; do
