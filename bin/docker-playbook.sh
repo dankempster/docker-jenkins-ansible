@@ -27,7 +27,7 @@ repository=""
 
 
 cleanUp() {
-	docker rm -v $(docker stop $1)
+	docker rm -v $(docker stop ${containerId})
 }
 
 cleanUpTrap() {
@@ -92,4 +92,4 @@ docker commit -p -a "Dan Kempster <me@dankempster.co.uk>" $containerId $reposito
 echo "Used ${containerId} to create ${repository}"
 
 # Clean up
-cleanUp $containerId
+cleanUp
