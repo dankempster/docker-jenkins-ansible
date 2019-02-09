@@ -136,13 +136,19 @@ pipeline {
               ansiColor('xterm') {
                 sh "sed \"s/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: \"${IMAGE_NAME}:${IMAGE_NAME}\"/g\" molecule/yml"
 
-                sh '''
-                  virtualenv virtenv
-                  source virtenv/bin/activate
-                  pip install --upgrade ansible molecule docker jmespath xmlunittest
+                script {
+                  try {
+                    sh '''
+                      virtualenv virtenv
+                      source virtenv/bin/activate
+                      pip install --upgrade ansible molecule docker jmespath xmlunittest
 
-                  molecule -e ./molecule/debian9_env.yml test
-                '''
+                      molecule -e ./molecule/debian9_env.yml test
+                    '''
+                  } catch (Exception e) {
+                    currentBuild.result = 'UNSTABLE'
+                  }
+                }
               }
             }
           }
