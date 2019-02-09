@@ -134,8 +134,8 @@ pipeline {
               )
 
               ansiColor('xterm') {
-                sh "sed \"s/^FROM .*/FROM ${IMAGE_NAME}:${IMAGE_NAME}/g\" Dockerfile"
-                
+                sh "sed \"s/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: \"${IMAGE_NAME}:${IMAGE_NAME}\"/g\" molecule/yml"
+
                 sh '''
                   virtualenv virtenv
                   source virtenv/bin/activate
