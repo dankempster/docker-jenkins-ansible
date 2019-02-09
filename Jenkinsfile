@@ -1,6 +1,7 @@
 #!/usr/bin/env groovy
 
 def IMAGE_NAME = "dankempster/jenkins-ansible"
+def SED_IMAGE_NAME = "dankempster\\/jenkins-ansible"
 def IMAGE_TAG = "build"
 
 pipeline {
@@ -117,6 +118,64 @@ pipeline {
         }
       }
     }
+
+    // stage('UATs') {
+      // parallel {
+        stage('UAT: jenkins-config') {
+          steps {
+            sh '[ -d build/uats/jenkins-config ] || mkdir -p build/uats/jenkins-config'
+
+            dir("build/uats/jenkins-config") {
+              git(
+                branch: 'feature/use-as-uat',
+                changelog: false,
+                credentialsId: 'com.github.dankempster.user',
+                poll: false,
+                url: 'https://github.com/dankempster/ansible-role-jenkins-config.git'
+              )
+
+              ansiColor('xterm') {
+                sh "sed -i 's/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: ${SED_IMAGE_NAME}:${IMAGE_TAG}/g' ./molecule/debian9_env.yml"
+
+                script {
+                  try {
+                    sh '''
+                      virtualenv virtenv
+                      source virtenv/bin/activate
+                      pip install --upgrade ansible molecule docker jmespath xmlunittest
+
+                      molecule -e ./molecule/debian9_env.yml converge
+                      molecule -e ./molecule/debian9_env.yml verify
+                    '''
+                  } catch (Exception e) {
+                    currentBuild.result = 'UNSTABLE'
+                  }
+                }
+              }
+            }
+          }
+          post {
+            always {
+              dir("build/uats/jenkins-config") {
+                script {
+                  try {
+                    ansiColor('xterm') {
+                      sh '''
+                        virtualenv virtenv
+                        source virtenv/bin/activate
+
+                        molecule -e ./molecule/debian9_env.yml destroy
+                      '''
+                    }
+                  } catch (Exception e) {
+                  }
+                }
+              }
+            }
+          }
+        }
+      // }
+    // }
 
     stage('Publish') {
       when {
