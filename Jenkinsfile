@@ -13,10 +13,6 @@ pipeline {
 
     stage('Build') {
       steps {
-
-        // Ensure we have the latest base docker image
-        sh "docker pull \$(head -n 1 Dockerfile | cut -d \" \" -f 2)"
-
         script { 
           if (env.BRANCH_NAME == 'develop') {
             IMAGE_TAG = 'develop'
@@ -29,7 +25,9 @@ pipeline {
           }
         }
         
-        sh "docker build -f Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+        ansiColor('xterm') {
+          sh "./build.sh -r ${IMAGE_NAME} -t ${IMAGE_TAG}"
+        }
       }
     }
 

@@ -1,8 +1,0 @@
----
-- hosts: all
-  become: true
-  roles:
-    - role: geerlingguy.git
-    - role: geerlingguy.docker
-      vars:
-        docker_users: [vagrant]
