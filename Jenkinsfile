@@ -125,6 +125,12 @@ pipeline {
           steps {
             sh '[ -d build/uats/jenkins-config ] || mkdir -p build/uats/jenkins-config'
 
+            sh """
+              virtualenv virtenv
+              source virtenv/bin/activate
+              pip install --upgrade ansible molecule docker jmespath xmlunittest
+            """
+
             dir("build/uats/jenkins-config") {
               git(
                 branch: 'feature/use-as-uat',
@@ -140,9 +146,7 @@ pipeline {
                 script {
                   try {
                     sh '''
-                      virtualenv virtenv
-                      source virtenv/bin/activate
-                      pip install --upgrade ansible molecule docker jmespath xmlunittest
+                      source ../../../virtenv/bin/activate
 
                       molecule -e ./molecule/debian9_env.yml converge
                       molecule -e ./molecule/debian9_env.yml verify
@@ -161,8 +165,7 @@ pipeline {
                   try {
                     ansiColor('xterm') {
                       sh '''
-                        virtualenv virtenv
-                        source virtenv/bin/activate
+                        source ../../../virtenv/bin/activate
 
                         molecule -e ./molecule/debian9_env.yml destroy
                       '''
@@ -179,6 +182,12 @@ pipeline {
           steps {
             sh '[ -d build/uats/jenkins-farm ] || mkdir -p build/uats/jenkins-farm'
 
+            sh """
+              virtualenv virtenv
+              source virtenv/bin/activate
+              pip install --upgrade ansible molecule docker jmespath
+            """
+
             dir("build/uats/jenkins-farm") {
               git(
                 branch: 'feature/use-as-uat',
@@ -194,9 +203,7 @@ pipeline {
                 script {
                   try {
                     sh '''
-                      virtualenv virtenv
-                      source virtenv/bin/activate
-                      pip install --upgrade ansible molecule docker jmespath xmlunittest
+                      source ../../../virtenv/bin/activate
 
                       molecule -e ./molecule/debian9_env.yml converge
                       molecule -e ./molecule/debian9_env.yml verify
@@ -215,8 +222,7 @@ pipeline {
                   try {
                     ansiColor('xterm') {
                       sh '''
-                        virtualenv virtenv
-                        source virtenv/bin/activate
+                        source ../../../virtenv/bin/activate
 
                         molecule -e ./molecule/debian9_env.yml destroy
                       '''
