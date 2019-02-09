@@ -29,7 +29,7 @@ pipeline {
           }
         }
         
-        sh "docker build -f Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+        sh "./build.sh -r ${IMAGE_NAME} -t ${IMAGE_TAG}"
       }
     }
 

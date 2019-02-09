@@ -30,6 +30,10 @@ tag="build"
 
 while [ "$1" != "" ]; do
     case $1 in
+        -r | --repository )
+            shift
+            repoName=$1
+            ;;
         -t | --tag )
 			shift
             tag=$1
