@@ -5,7 +5,15 @@
 PROGNAME=$(basename $0)
 
 usage() {
-    echo "USAGE: ${PROGNAME} [-t TAG]"
+    echo "USAGE: ${PROGNAME} [-d Dockerfile] [-r REPOSITORY] [-t TAG]"
+    echo ""
+    echo " -d | --dockerfile : The Dockerfile to build the base image"
+    echo "                     Default: Dockerfile"
+    echo " -r | --repository : The repository name to tag the built image with"
+    echo "                     Default: dankempster/jenkins-ansible"
+    echo " -t | --tag        : The tag for the built image. e.g. 'latest'"
+    echo "                     Default: build"
+    echo ""
 }
 
 errorExit() {
@@ -45,6 +53,10 @@ while [ "$1" != "" ]; do
         -r | --repository )
             shift
             repoName=$1
+            ;;
+        -h | --help )
+            usage
+            exit 0
             ;;
         -t | --tag )
 			shift
