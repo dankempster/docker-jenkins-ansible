@@ -1,208 +1,307 @@
 #!/usr/bin/env groovy
 
-def IMAGE_NAME = "dankempster/jenkins-ansible"
-def IMAGE_TAG = "build"
+def REPOSITORY_OWNER = "192.168.85.20:5000"
+def IMAGE_TAG = "build-${env.BUILD_NUMBER}"
+
+if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master') {
+  
+  REPOSITORY_DEBIAN9 = "jenkins-debian9-ansible"
+  REPOSITORY_RASPBIAN = "jenkins-raspbian-stretch"
+}
+else {
+  def SAFE_JOB_NAME = env.JOB_NAME.replace("/", "-").replace("%2F", "-")
+  REPOSITORY_DEBIAN9 = "${SAFE_JOB_NAME}-debian9"
+  REPOSITORY_RASPBIAN = "${SAFE_JOB_NAME}-raspbian"
+}
+
+IMAGE_NAME_DEBIAN9 = "${REPOSITORY_OWNER}/${REPOSITORY_DEBIAN9}"
+IMAGE_NAME_RASPBIAN = "${REPOSITORY_OWNER}/${REPOSITORY_RASPBIAN}"
+
 
 pipeline {
 
-  agent {
-    label 'amd64'
+
+  agent none
+
+
+  environment {
+    ANT_ARGS = '-logger org.apache.tools.ant.listener.AnsiColorLogger'
   }
+
 
   stages {
 
     stage('Build') {
-      steps {
-        script { 
-          if (env.BRANCH_NAME == 'develop') {
-            IMAGE_TAG = 'develop'
+      parallel {
+
+
+        stage('Debian 9') {
+          agent {
+            label 'x86_64'
           }
-          else if (env.BRANCH_NAME == 'master') {
-            IMAGE_TAG = 'latest'
+
+          steps {            
+            ansiColor('xterm') {
+              withAnt(installation: 'System') {
+                sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_DEBIAN9} -Dimage.tag=${IMAGE_TAG} build"
+              }
+            }
           }
-          else {
-            IMAGE_TAG = 'build'
+
+          post {
+            success {
+              sh "docker push ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+            }
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+            }
           }
         }
-        
-        ansiColor('xterm') {
-          sh "./build.sh -r ${IMAGE_NAME} -t ${IMAGE_TAG}"
+
+
+        stage('Raspbian Stretch') {
+          agent {
+            label 'raspberrypi_3'
+          }
+
+          steps {
+            ansiColor('xterm') {
+              withAnt(installation: 'System') {
+                sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_RASPBIAN} -Dimage.tag=${IMAGE_TAG} build"
+              }
+            }
+          }
+
+          post {
+            success {
+              sh "docker push ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+            }
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+            }
+          }
         }
       }
     }
+
 
     stage('Tests') {
       parallel {
-        stage('Goss') {
-          steps {
 
-            // Prepare build directory
-            sh 'rm -fr build/{reports,raw-reports}'
-            sh '[ -d build/reports ] || mkdir -p build/reports'
-            sh '[ -d build/raw-reports ] || mkdir -p build/raw-reports'
 
-            // Install Goss & dgoss
-            sh '[ -d bin ] || mkdir bin'
-            sh 'curl -fsSL https://goss.rocks/install | GOSS_DST=./bin sh'
-            sh "chmod +rx ./bin/{goss,dgoss}"
-
-            // Run the tests
-            sh """
-              export GOSS_PATH=\$(pwd)/bin/goss
-              export GOSS_OPTS="--retry-timeout 120s --sleep 5s --format junit"
-
-              ./bin/dgoss run --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro -p 8080 ${IMAGE_NAME}:${IMAGE_TAG} | \\grep '<' > build/raw-reports/goss-output.txt
-            """
+        stage('Goss: Debian') {
+          agent {
+            label 'x86_64'
           }
+
+          steps {
+            ansiColor('xterm') {
+              withAnt(installation: 'System') {
+                sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_DEBIAN9} -Dimage.tag=${IMAGE_TAG} goss-junit"
+              }
+            }
+          }
+
           post {
             always {
-              // The following is required to extract the last junit report
-              // from Goss output.
-              // This is required because
-              //  - goss outputs the junit format to STDOUT, with other output.
-              //  - goss prints out junit for each "retry", so the final output
-              //      is multiple junit reports. One for each "try" during the
-              //      tests.
-              //  - I have to use the goss' retry feature so it "waits" for
-              //      Jenkins to load.
-              //
-              sh """
-                cd build/raw-reports
-
-                # split Goss output into multiple files numbered sequentially.
-                awk '
-                FNR==1 {
-                   path = namex = FILENAME;
-                   sub(/^.*\\//,   "", namex);
-                   sub(namex "\$", "", path );
-                   name = ext  = namex;
-                   sub(/\\.[^.]*\$/, "", name);
-                   sub("^" name,   "", ext );
-                }
-                /<\\?xml / {
-                   if (out) close(out);
-                   out = path name (++file) ext ;
-                   print "Spliting to " out " ...";
-                }
-                /<\\?xml /,/<\\/testsuite>/ {
-                   print \$0 > out
-                }
-                ' goss-output.txt
-
-                # use the highest numbered file as Goss' final junit report
-                mv goss-output\$(ls -l | grep -P goss-output[0-9]+\\.txt | wc -l).txt ../reports/goss-junit.xml
-              """
-
               junit 'build/reports/**/*.xml'
             }
-          }
-        }
-
-        stage('Ansible\'s Version') {
-          steps {
-            script {
-              CONTAINER_ID = sh(
-                script: "docker run --detach --privileged --volume=/sys/fs/cgroup:/sys/fs/cgroup:ro ${IMAGE_NAME}:${IMAGE_TAG}",
-                returnStdout: true
-              ).trim()
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
             }
-            
-            sh "docker exec --tty ${CONTAINER_ID} env TERM=xterm ansible --version"
-
-            sh """
-              docker stop ${CONTAINER_ID}
-              docker rm ${CONTAINER_ID}
-            """
           }
         }
-      }
-    }
 
-    // stage('UATs') {
-      // parallel {
-        stage('UAT: jenkins-config') {
+
+        stage('Goss: Raspbian Stretch') {
+          agent {
+            label 'raspberrypi_3'
+          }
+
           steps {
-            sh '[ -d build/uats/jenkins-config ] || mkdir -p build/uats/jenkins-config'
-
-            dir("build/uats/jenkins-config") {
-              git(
-                branch: 'feature/use-as-uat',
-                changelog: false,
-                credentialsId: 'com.github.dankempster.user',
-                poll: false,
-                url: 'https://github.com/dankempster/ansible-role-jenkins-config.git'
-              )
-
-              ansiColor('xterm') {
-                script {
-                  def SED_IMAGE_NAME = IMAGE_NAME.replace("/", "\\/")
-                }
-
-                sh "sed -i 's/^MOLECULE_IMAGE:.*/MOLECULE_IMAGE: ${SED_IMAGE_NAME}:${IMAGE_TAG}/g' ./molecule/debian9_env.yml"
-
-                script {
-                  try {
-                    sh '''
-                      virtualenv virtenv
-                      source virtenv/bin/activate
-                      pip install --upgrade ansible molecule docker jmespath xmlunittest
-
-                      molecule -e ./molecule/debian9_env.yml converge
-                      molecule -e ./molecule/debian9_env.yml verify
-                    '''
-                  } catch (Exception e) {
-                    currentBuild.result = 'UNSTABLE'
-                  }
-                }
+            ansiColor('xterm') {
+              withAnt(installation: 'System') {
+                sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_RASPBIAN} -Dimage.tag=${IMAGE_TAG} goss-junit"
               }
             }
           }
+
           post {
             always {
-              dir("build/uats/jenkins-config") {
-                script {
-                  try {
-                    ansiColor('xterm') {
-                      sh '''
-                        virtualenv virtenv
-                        source virtenv/bin/activate
-
-                        molecule -e ./molecule/debian9_env.yml destroy
-                      '''
-                    }
-                  } catch (Exception e) {
-                  }
-                }
-              }
+              junit 'build/reports/**/*.xml'
+            }
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
             }
           }
         }
-      // }
-    // }
 
-    stage('Publish') {
-      parallel {
-
-        stage('Docker Hub') {
-          when {
-            anyOf {
-              branch 'develop'
-              allOf {
-                expression {
-                  currentBuild.result != 'UNSTABLE'
-                }
-                branch 'master'
-              }
-            }
-          }
-          steps {
-            withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
-              sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-            }
-          }
-        }
 
       }
     }
+
+
+    stage('UATs') {
+      parallel {
+
+
+        stage('Debian 9') {
+          agent {
+            label 'x86_64'
+          }
+
+          steps {
+            script {
+              try {
+                ansiColor('xterm') {
+                  withAnt(installation: 'System') {
+                    sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_DEBIAN9} -Dimage.tag=${IMAGE_TAG} uat-jenkins-config"
+                  }
+                  sh "bin/uat-junit.sh build/reports/uat-jenkins-config-debian9.xml jenkins-config -p Jenkins-config successfully built using ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+                }
+              }
+              catch (Exception e) {
+                  sh "bin/uat-junit.sh build/reports/uat-jenkins-config-debian9.xml jenkins-config -f Jenkins-config failed to build using ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+              }
+            }
+          }
+
+          post {
+            failure {
+              ansiColor('xterm') {
+                withAnt(installation: 'System') {
+                  sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_DEBIAN9} -Dimage.tag=${IMAGE_TAG} destroy-uat-jenkins-config"
+                }
+              }
+            }
+            always {
+              junit 'build/reports/uat-jenkins-config-debian9.xml'
+            }
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+            }
+          }
+        }
+
+
+        stage('Raspbian Stretch') {
+          agent {
+            label 'raspberrypi_3'
+          }
+
+          steps {
+            script {
+              try {
+                ansiColor('xterm') {
+                  withAnt(installation: 'System') {
+                    sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_RASPBIAN} -Dimage.tag=${IMAGE_TAG} uat-jenkins-config"
+                  }
+                  sh "bin/uat-junit.sh build/reports/uat-jenkins-config-raspbian.xml jenkins-config -p Jenkins-config successfully built using ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+                }
+              }
+              catch (Exception e) {
+                sh "bin/uat-junit.sh build/reports/uat-jenkins-config-raspbian.xml jenkins-config -f Jenkins-config failed to build using ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+              }
+            }
+          }
+
+          post {
+            failure {
+              ansiColor('xterm') {
+                withAnt(installation: 'System') {
+                  sh "ant -Dbuild.number=${env.BUILD_NUMBER} -Dimage.name=${IMAGE_NAME_RASPBIAN} -Dimage.tag=${IMAGE_TAG} destroy-uat-jenkins-config"
+                }
+              }
+            }
+            always {
+              junit 'build/reports/uat-jenkins-config-raspbian.xml'
+            }
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+            }
+          }
+        }
+
+
+      }
+    }
+
+
+    stage('Publish') {
+      when {
+        anyOf {
+          branch 'develop'
+          allOf {
+            expression {
+              currentBuild.result != 'UNSTABLE'
+            }
+            branch 'master'
+          }
+        }
+      }
+
+      parallel {
+        stage('Debian 9') {
+          agent {
+            label 'x86_64'
+          }
+
+          steps {
+            script {
+              def PUBLISH_NAME = "dankempster/${REPOSITORY_DEBIAN9}:${PUBLISH_TAG}"
+              if (env.BRANCH_NAME == 'master') {
+                PUBLISH_NAME = "${PUBLISH_NAME}:latest"
+              }
+              else {
+                PUBLISH_NAME = "${PUBLISH_NAME}:develop"
+              }
+            }
+            sh "docker pull ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+            sh "docker tag ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG} ${PUBLISH_NAME}"
+            withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
+              sh "docker push ${PUBLISH_NAME}"
+            }
+          }
+
+          post {
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
+            }
+          }
+        }
+
+
+        stage('Raspbian Stretch') {
+          agent {
+            label 'raspberrypi_3'
+          }
+
+          steps {
+            script {
+              def PUBLISH_NAME = "dankempster/${REPOSITORY_RASPBIAN}:${PUBLISH_TAG}"
+              if (env.BRANCH_NAME == 'master') {
+                PUBLISH_NAME = "${PUBLISH_NAME}:latest"
+              }
+              else {
+                PUBLISH_NAME = "${PUBLISH_NAME}:develop"
+              }
+            }
+            sh "docker pull ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+            sh "docker tag ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG} ${PUBLISH_NAME}"
+            withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
+              sh "docker push ${PUBLISH_NAME}"
+            }
+          }
+
+          post {
+            cleanup {
+              sh "docker rmi --force ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
+            }
+          }
+        }
+      }
+    }
+
+
   }
 }

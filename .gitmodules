@@ -4,3 +4,7 @@
 [submodule "roles/geerlingguy.java"]
 	path = roles/geerlingguy.java
 	url = https://github.com/geerlingguy/ansible-role-java.git
+[submodule "tests/uat-jenkins-config"]
+	path = tests/uat-jenkins-config
+	url = https://github.com/dankempster/ansible-role-jenkins-config.git
+	branch = feature/install-git-by-default
