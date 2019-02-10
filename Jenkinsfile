@@ -178,21 +178,27 @@ pipeline {
     // }
 
     stage('Publish') {
-      when {
-        anyOf {
-          branch 'develop'
-          allOf {
-            expression {
-              currentBuild.result != 'UNSTABLE'
+      parallel {
+
+        stage('Docker Hub') {
+          when {
+            anyOf {
+              branch 'develop'
+              allOf {
+                expression {
+                  currentBuild.result != 'UNSTABLE'
+                }
+                branch 'master'
+              }
             }
-            branch 'master'
+          }
+          steps {
+            withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
+              sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
+            }
           }
         }
-      }
-      steps {
-        withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
-          sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
-        }
+
       }
     }
   }
