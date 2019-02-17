@@ -186,6 +186,7 @@ pipeline {
           }
 
           steps {
+            echo "Building ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
             script {
               try {
                 ansiColor('xterm') {
@@ -225,6 +226,7 @@ pipeline {
           }
 
           steps {
+            echo "Building ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
             script {
               try {
                 ansiColor('xterm') {
