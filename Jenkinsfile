@@ -34,7 +34,9 @@ pipeline {
     stage('Prepare') {
       steps {
         script {
+          echo "BRANCH_NAME: ${env.BRANCH_NAME}"
           echo "CHANGE_ID: ${env.CHANGE_ID}"
+          echo "CHANGE_BRANCH: ${env.CHANGE_BRANCH}"
         }
       }
     }
