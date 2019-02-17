@@ -152,6 +152,26 @@ pipeline {
 
 
     stage('UATs') {
+      when {
+          anyOf { // Run UATs for
+
+            // master branch
+            changeRequest branch: 'master'
+
+            // develop branch
+            changeRequest branch: 'develop'
+
+            // merges with 'master' as the target
+            changeRequest target: 'master'
+
+            // all release branches, even before they're a PR
+            changeRequest id: '', branch: 'release/*', comparator: 'GLOB'
+
+            // all PRs
+            expression { env.CHANGE_ID.isNumber() }
+          }
+      }
+
       parallel {
 
 
