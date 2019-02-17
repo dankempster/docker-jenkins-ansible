@@ -1,14 +1,46 @@
 ---
 - hosts: 127.0.0.1
   connection: local
-  pre_tasks:
+  pre_tasks:        
     - name: no recommends for APT
+      become: true
       copy:
         dest: "/etc/apt/apt.conf.d/99_norecommends"
         content: |
           APT::Install-Recommends "false";
           APT::AutoRemove::RecommendsImportant "false";
           APT::AutoRemove::SuggestsImportant "false";
+
+    - name: update apt cache
+      become: true
+      apt:
+        update_cache: true
+      when: ansible_architecture == 'armv7l' # raspberrypi3
+
+    - name: remove all java packages
+      become: true
+      apt:
+        package:
+          - default-jre
+          - openjdk-8-jre-headless
+          - openjdk-8-jre
+        state: absent
+      when: ansible_architecture == 'armv7l' # raspberrypi3
+     
+    - file:
+        path: /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/client
+        state: directory
+      become: true
+      when: ansible_architecture == 'armv7l' # raspberrypi3
+    
+    - file:
+        src: /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/client
+        dest: /usr/lib/jvm/java-8-openjdk-armhf/jre/lib/arm/server
+        state: link
+      become: true
+      when: ansible_architecture == 'armv7l' # raspberrypi3
+
+    - shell: 'echo "\nKillExcludeUsers=root jenkins\n" > /etc/systemd/logind.conf'
 
   roles:
     - role: roles/geerlingguy.java

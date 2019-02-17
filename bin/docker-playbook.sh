@@ -1,6 +1,17 @@
 #!/bin/bash
 
-# set -x
+exit_on_error() {
+    exit_code=$1
+    last_command=${@:2}
+    if [ $exit_code -gt 0 ]; then
+        >&2 echo "\"${last_command:-Unknown}\" command failed with exit code ${exit_code}."
+        cleanUp
+        exit $exit_code
+    fi
+}
+
+# enable !! command completion
+set -o history -o histexpand
 
 PROGNAME=$(basename $0)
 
@@ -78,19 +89,19 @@ dockerCommitArgs=""
 cleanUp() {
 
     if [ "${intermediateId}" != "" ]; then 
-        docker rm -v $(docker stop ${intermediateId})
+        docker rm -v $(docker stop ${intermediateId}) > /dev/null 2>&1
     fi
 
     if [ "${finalId}" != "" ]; then 
-        docker rm -v $(docker stop ${finalId})
+        docker rm -v $(docker stop ${finalId}) > /dev/null 2>&1
     fi
     
     if [ $builtIntermediateImage -eq 1 ]; then
-        docker rmi ${intermediateImage}
+        docker rmi -f ${intermediateImage} > /dev/null 2>&1
     fi
     
     if [ $builtBaseImage -eq 1 ]; then
-        docker rmi ${baseImage}
+        docker rmi -f ${baseImage} > /dev/null 2>&1
     fi
 }
 
@@ -102,47 +113,6 @@ cleanUpTrap() {
 	echo ""
 	cleanUp
 	exit 1
-}
-
-buildBaseImage() {
-    baseImage="dockerplaybook:base_image"
-
-    docker build -f ${dockerfile} . -t ${baseImage}
-    builtBaseImage=1
-}
-
-buildIntermediateImage() {  
-    
-    intermediateId=$(docker run -dt -v $(pwd):/project${dockerRunArgs} ${baseImage} ${buildCmd})
-
-    echo "Running ansible-playbook in intermediate container ${intermediateId}"
-
-    # Run the playbook
-    docker exec -t -w /project ${intermediateId} ansible-playbook ${playbook}
-
-    # Create the image from the container
-    echo "Creating intermediate image from container ${intermediateId}"
-    docker stop ${intermediateId}
-    docker commit -p ${intermediateId} $intermediateImage
-    builtIntermediateImage=1
-
-    # Clean up
-    docker rm ${intermediateId}
-    intermediateId=""
-}
-
-buildFinalImage() {
-    
-    if [ "${targetEntrypoint}" != "" ]; then
-        dockerRunArgs="--entrypoint ${targetEntrypoint} ${dockerRunArgs}"
-    fi
-
-    echo "Creating ${targetImage} from intermediate image"
-    finalId=$(docker run${dockerRunArgs} -d ${intermediateImage} ${targetCmd})
-
-    # Create the image from the container
-    echo docker commit -p ${finalId} $dockerCommitArgs ${targetImage}
-    docker commit -p ${finalId} $dockerCommitArgs ${targetImage}
 }
 
 if [ $# -eq 0 ]; then
@@ -211,23 +181,75 @@ fi
 trap "cleanUpTrap" SIGHUP SIGINT SIGTERM
 
 
-# Build
-if [ "${baseImage}" == "" ]; then
-    buildBaseImage
+#
+#
+### Build Base Image
+#
+if [ "${baseImage}" == "" ] || [ "${dockerfile}" != "Dockerfile" ] ; then
+    baseImage="dockerplaybook:base_image"
+    docker build -f ${dockerfile} . -t ${baseImage}
+    exit_on_error $? docker run${dockerRunArgs} -d ${intermediateImage} ${targetCmd}
+    builtBaseImage=1
     echo ""
 fi
-buildIntermediateImage
-echo ""
-buildFinalImage
-echo ""
 
+
+#
+#
+### Build Intermediate Image
+#
+intermediateId=$(docker run -dt -v $(pwd):/project${dockerRunArgs} ${baseImage} ${buildCmd})
+
+echo "Running ansible-playbook in intermediate container ${intermediateId}"
+
+# Run the playbook
+docker exec -t -w /project ${intermediateId} ansible-playbook ${playbook}
+exit_on_error $? !!
+
+# Create the image from the container
+echo "Creating intermediate image from container ${intermediateId}"
+docker stop ${intermediateId}
+docker commit ${intermediateId} $intermediateImage
+exit_on_error $? !!
+builtIntermediateImage=1
 
 # Clean up
+docker rm ${intermediateId}
+intermediateId=""
+echo ""
+
+
+#
+#
+### Build Intermediate Image
+#
+if [ "${targetEntrypoint}" != "" ]; then
+    dockerRunArgs="--entrypoint ${targetEntrypoint} ${dockerRunArgs}"
+fi
+
+echo "Creating ${targetImage} from intermediate image"
+finalId=$(docker run${dockerRunArgs} -d ${intermediateImage} ${targetCmd})
+exit_on_error $? docker run${dockerRunArgs} -d ${intermediateImage} ${targetCmd}
+
+# Create the image from the container
+docker stop ${finalId}
+docker commit ${finalId} $dockerCommitArgs ${targetImage}
+echo ""
+
+
+#
+#
+### Clean up
+#
 echo "Cleaning up"
 echo ""
 cleanUp
 
 
+#
+#
+### Done
+#
 echo ""
 echo "Ready! To run your new image:"
 echo ""
