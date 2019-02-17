@@ -9,7 +9,7 @@ if (env.BRANCH_NAME == 'develop' || env.BRANCH_NAME == 'master') {
   REPOSITORY_RASPBIAN = "jenkins-raspbian-stretch"
 }
 else {
-  def SAFE_JOB_NAME = env.JOB_NAME.replace("/", "-").replace("%2F", "-")
+  def SAFE_JOB_NAME = env.JOB_NAME.replace("/", "-").replace("%2F", "-").toLowerCase()
   REPOSITORY_DEBIAN9 = "${SAFE_JOB_NAME}-debian9"
   REPOSITORY_RASPBIAN = "${SAFE_JOB_NAME}-raspbian"
 }
