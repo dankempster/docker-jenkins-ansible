@@ -1,0 +1,4 @@
+[submodule "tests/uat-jenkins-config"]
+	path = tests/uat-jenkins-config
+	url = git@github.com:dankempster/ansible-role-jenkins-config.git
+	branch = feature/install-git-by-default
