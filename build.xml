@@ -91,11 +91,12 @@
       match="^FROM (.*)"
       replace="FROM ${base_image.name}"
     />
-    <exec executable="./build.sh" failonerror="true">
+    <exec executable="docker" failonerror="true">
       <env key="TMPDIR" value="${dir.temp}" />
-      <arg line="-d ${dir.build}/Dockerfile" />
-      <arg line="-r ${image.name}" />
-      <arg line="-t ${image.tag}" />
+      <arg value="build" />
+      <arg line="-f ${dir.build}/Dockerfile" />
+      <arg line="-t ${image.name}:${image.tag}" />
+      <arg value="." />
     </exec>
   </target>
 
