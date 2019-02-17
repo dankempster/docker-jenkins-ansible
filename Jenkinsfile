@@ -266,13 +266,25 @@ pipeline {
 
     stage('Publish') {
       when {
-        anyOf {
+        anyOf { // Only publish if...
+          
+          // 'develop' branch
           branch 'develop'
+
+          // OR
           allOf {
+            // Build is 'STABLE'
             expression {
               currentBuild.result != 'UNSTABLE'
             }
-            branch 'master'
+            // AND
+            anyOf {
+              // is 'master' branch
+              branch 'master'
+
+              // OR is 'release' branch, authored by a trusted domain and is targeted to 'matser' branch
+              changeRequest authorEmail: '*@dankempster.co.uk', branch: 'release/*', comparator: 'GLOB', target: 'master'
+            }
           }
         }
       }
@@ -285,14 +297,10 @@ pipeline {
 
           steps {
             script {
-              def PUBLISH_NAME = "dankempster/${REPOSITORY_DEBIAN9}"
-              if (env.BRANCH_NAME == 'master') {
-                PUBLISH_NAME = "${PUBLISH_NAME}:latest"
-              }
-              else {
-                PUBLISH_NAME = "${PUBLISH_NAME}:develop"
-              }
+              def PUBLISH_TAG = getPublishTag()
+              def PUBLISH_NAME = "dankempster/${REPOSITORY_DEBIAN9}:${PUBLISH_TAG}"
             }
+            echo "Publishing ${PUBLISH_NAME}"
             sh "docker pull ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG}"
             sh "docker tag ${IMAGE_NAME_DEBIAN9}:${IMAGE_TAG} ${PUBLISH_NAME}"
             withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
@@ -315,14 +323,10 @@ pipeline {
 
           steps {
             script {
-              def PUBLISH_NAME = "dankempster/${REPOSITORY_RASPBIAN}"
-              if (env.BRANCH_NAME == 'master') {
-                PUBLISH_NAME = "${PUBLISH_NAME}:latest"
-              }
-              else {
-                PUBLISH_NAME = "${PUBLISH_NAME}:develop"
-              }
+              def PUBLISH_TAG = getPublishTag()
+              def PUBLISH_NAME = "dankempster/${REPOSITORY_RASPBIAN}:${PUBLISH_TAG}"
             }
+            echo "Publishing ${PUBLISH_NAME}"
             sh "docker pull ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG}"
             sh "docker tag ${IMAGE_NAME_RASPBIAN}:${IMAGE_TAG} ${PUBLISH_NAME}"
             withDockerRegistry([credentialsId: "com.docker.hub.dankempster", url: ""]) {
@@ -342,3 +346,28 @@ pipeline {
 
   }
 }
+
+
+def getPublishTag()
+{    
+  switch (env.BRANCH_NAME) {
+    // case ~/^master$/:
+    case "master":
+      return 'latest';
+
+    case "develop":
+      return 'develop';
+
+    case ~/^PR-[0-9]+$/:
+      switch (env.CHANGE_BRANCH) {
+        case ~/^release\/v?(.*)$/:
+          return "${Matcher.lastMatcher[0][1]}"
+      }
+
+    default:
+      def message = "Don't know how to create PUBLISH_TAG"
+      echo "${message}"
+      throw new Exception("${message}")
+  }
+}
+
