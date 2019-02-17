@@ -31,6 +31,14 @@ pipeline {
 
   stages {
 
+    stage('Prepare') {
+      steps {
+        script {
+          echo "CHANGE_ID: ${env.CHANGE_ID}"
+        }
+      }
+    }
+
     stage('Build') {
       parallel {
 
