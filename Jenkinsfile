@@ -248,7 +248,7 @@ pipeline {
 
           steps {
             script {
-              def PUBLISH_NAME = "dankempster/${REPOSITORY_DEBIAN9}:${PUBLISH_TAG}"
+              def PUBLISH_NAME = "dankempster/${REPOSITORY_DEBIAN9}"
               if (env.BRANCH_NAME == 'master') {
                 PUBLISH_NAME = "${PUBLISH_NAME}:latest"
               }
@@ -278,7 +278,7 @@ pipeline {
 
           steps {
             script {
-              def PUBLISH_NAME = "dankempster/${REPOSITORY_RASPBIAN}:${PUBLISH_TAG}"
+              def PUBLISH_NAME = "dankempster/${REPOSITORY_RASPBIAN}"
               if (env.BRANCH_NAME == 'master') {
                 PUBLISH_NAME = "${PUBLISH_NAME}:latest"
               }
